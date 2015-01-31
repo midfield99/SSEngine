@@ -33,7 +33,7 @@ import sprite.NullListener;
 /**
  * Stores a width x height square with a 32 bit ARGB value.
  * 
- * @author Brian
+ * @author Brian Nakayama
  */
 public class ColorImg extends Img {
 
@@ -78,6 +78,29 @@ public class ColorImg extends Img {
 	@Override
 	public int getHeight() {
 		return bI.getHeight();
+	}
+
+	@Override
+	public int[] getPixel(int x, int y) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void setPixel(int x, int y, int[] val) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public boolean checkForCol(int[] val) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public Img getRotatedInstance(int degree) {
+		return this;
 	}
 
 }

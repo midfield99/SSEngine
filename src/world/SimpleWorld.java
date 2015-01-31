@@ -195,26 +195,26 @@ public class SimpleWorld implements Cinterface {
 
 		// Update camera coordinates based off of the width and height.
 		if (cameraStalk != null) {
-			camera[0] = cameraStalk.coor_x - (dv.getCanvas().getWidth() - m.cellWidth)
+			int width = dv.getCanvas().getWidth();
+			int height = dv.getCanvas().getHeight();
+			
+			camera[0] = cameraStalk.coor_x - (width - m.cellWidth)
 					/ 2;
 			camera[1] = cameraStalk.coor_y
-					- (dv.getCanvas().getHeight() - m.cellHeight) / 2;
+					- (height - m.cellHeight) / 2;
 			if (camera[0] < 0) {
 				camera[0] = 0;
 			} else {
 				int x;
-				if (camera[0] > (x = m.mapWmax - dv.getCanvas().getWidth()
-						+ m.cellWidth)) {
+				if (camera[0] > (x = m.mapWmax - width + m.cellWidth)) {
 					camera[0] = x;
 				}
-			}
-
+			}			
 			if (camera[1] < 0) {
 				camera[1] = 0;
 			} else {
 				int y;
-				if (camera[1] > (y = m.mapHmax - dv.getCanvas().getHeight()
-						+ m.cellHeight)) {
+				if (camera[1] > (y = m.mapHmax - height	+ m.cellHeight)) {
 					camera[1] = y;
 				}
 			}
@@ -249,5 +249,19 @@ public class SimpleWorld implements Cinterface {
 		// Update the world object last.
 		swo.update();
 		dv.getCanvas().paint();
+	}
+	
+	/**
+	 * Disables updating of objects in world.
+	 */
+	public void disableUpdate() {
+		update = false;
+	}
+	
+	/**
+	 * Enables updating of objects in world.
+	 */
+	public void enableUpdate() {
+		update = true;
 	}
 }

@@ -31,7 +31,8 @@ import sprite.Img;
  * y-index on the screen.
  * 
  * @author Brian Nakayama
- * @version 1.2 Now all code is abstracted as MVC.
+ * @version 1.3 Fuzz movement was created.
+ * @since 1.2 Now all code is abstracted as MVC.
  * @since 1.1
  */
 public abstract class SimpleSolid extends SimpleObject {
@@ -111,10 +112,8 @@ public abstract class SimpleSolid extends SimpleObject {
 	 * Similar to {@link SimpleObject#move(int, int, boolean)}, with the
 	 * exception that it does not allow movements that overlap with another
 	 * SimpleSolid's space. Furthermore, as of version 1.0 it does not attempt
-	 * to move at all if encountering an overlap (TODO). The solids resort
-	 * themselves when the y-axis has changed rows in the map.
-	 * 
-	 * TODO Update for changes in map.
+	 * to move at all if encountering an overlap. The solids resort themselves
+	 * when the y-axis has changed rows in the map.
 	 * 
 	 * @param x
 	 *            The new x-coordinate.
@@ -126,12 +125,64 @@ public abstract class SimpleSolid extends SimpleObject {
 	 * @return True iff the object moved successfully.
 	 */
 	public boolean move(int x, int y, boolean relative) {
+		return move(x, y, relative, 0);
+	}
+
+	/**
+	 * The method for moving a solid, that will attempt to move when colliding
+	 * on a corner (fuzz > 0) or will attempt to move as far along the direction
+	 * indicated (fuzz = -1).
+	 * 
+	 * Identical to {@link SimpleSolid#move(int, int, boolean)}, except if
+	 * there's a collision with only one object this method will move the object
+	 * by the given fuzz amount in a favorable alignment so that this object is
+	 * better situated to move when move is called again. Specifically, if we
+	 * collide within cellWidth / 2 or cellHeight / 2 of a corner we move the
+	 * object fuzz pixels towards the tip of the corner. This method always
+	 * moves the object relative from its current position, and is not intended
+	 * for large leaps greater than the size of the map cells.
+	 * 
+	 * 
+	 * 
+	 * @param x
+	 *            The new relative x-coordinate.
+	 * @param y
+	 *            The new relative y-coordinate.
+	 * @param fuzz
+	 *            The alternative amount to move either NS or EW if there's a
+	 *            collision.
+	 * @return True iff the intended move was made or the fuzz move.
+	 */
+	public boolean fuzzMove(int x, int y, int fuzz) {
+		return move(x, y, true, fuzz);
+	}
+
+	/**
+	 * The method for moving a solid, that will attempt to move as far along the
+	 * direction indicated (Same as {@link #fuzzMove(int, int, int)} where fuzz
+	 * = -1).
+	 * 
+	 * Specifically, it looks at the first object it has collided with (if a
+	 * collision occurs), and it then moves the maximum amount in both the x and
+	 * y directions without colliding.
+	 * 
+	 * @param x
+	 *            The new relative x-coordinate.
+	 * @param y
+	 *            The new relative y-coordinate.
+	 * @return True iff a normal move or the approximation move was made.
+	 */
+	public boolean approxMove(int x, int y) {
+		return move(x, y, true, -1);
+	}
+
+	private boolean move(int x, int y, boolean relative, int fuzz) {
 		if (relative) {
 			x += coor_x;
 			y += coor_y;
 		}
 
-		//Check if the object is trying to leave the map.
+		// Check if the object is trying to leave the map.
 		if (x > 0) {
 			if (x > m.mapWmax) {
 				x = m.mapWmax;
@@ -148,10 +199,11 @@ public abstract class SimpleSolid extends SimpleObject {
 			y = 0;
 		}
 
-		//Calculate if the move is feasible.
+		// Calculate if the move is feasible.
 		m.calculateCollisions(x, y, this);
-		if (collisions[0] == null
-				|| (collisions[0] == this && collisions[1] == null)) {
+		boolean isMe = (collisions[0] == this);
+
+		if (collisions[0] == null || (isMe && collisions[1] == null)) {
 
 			int pre_y = coor_y / m.cellHeight;
 			int new_y = y / m.cellHeight;
@@ -183,17 +235,86 @@ public abstract class SimpleSolid extends SimpleObject {
 				drawNext.drawPrevious = this;
 				return true;
 			}
-		} else { /* Notify all objects in the collision list. */
-			for (SimpleSolid S : collisions) {
-				if (S != null) {
-					if (S != this) {
-						S.collision(this);
-						collision(S);
+		} else {
+			switch (fuzz) {
+			default:
+				// If the fuzz parameter is nonzero, and there is at most one
+				// collision.
+				if (collisions[2] == null && collisions[1] != null) {
+					final int dx;
+					final int dy;
+					if (isMe) {
+						dx = collisions[1].coor_x - collisions[0].coor_x;
+						dy = collisions[1].coor_y - collisions[0].coor_y;
+					} else {
+						dx = collisions[0].coor_x - collisions[1].coor_x;
+						dy = collisions[0].coor_y - collisions[1].coor_y;
 					}
-				} else {
-					break;
+
+					if (dx > m.cellWidth / 2 && dx < m.cellWidth) {
+						return move(Math.max(dx - m.cellWidth, -fuzz), 0, true,
+								0);
+					} else if (-dx > m.cellWidth / 2 && -dx < m.cellWidth) {
+						return move(Math.min(m.cellWidth + dx, fuzz), 0, true,
+								0);
+					}
+
+					if (dy > m.cellHeight / 2 && dy < m.cellHeight) {
+						return move(0, Math.max(dy - m.cellHeight, -fuzz),
+								true, 0);
+					} else if (-dy > m.cellHeight / 2 && -dy < m.cellHeight) {
+						return move(0, Math.min(m.cellHeight + dy, fuzz), true,
+								0);
+					}
 				}
+				/* no break */
+			case 0:
+				/* Notify all objects in the collision list. */
+				for (SimpleSolid S : collisions) {
+					if (S != null) {
+						if (S != this) {
+							S.collision(this);
+							collision(S);
+						}
+					} else {
+						break;
+					}
+				}
+				break;
+			case -1:
+				/* Approximate move. Move as far along two vectors as possible. */
+				if (collisions[1] != null) {
+					final int dx1, dy1;
+					int dx2, dy2;
+					dx2 = x - coor_x;
+					dy2 = y - coor_y;
+
+					if (isMe) {
+						dx1 = collisions[1].coor_x - coor_x;
+						dy1 = collisions[1].coor_y - coor_y;
+					} else {
+						dx1 = collisions[0].coor_x - coor_x;
+						dy1 = collisions[0].coor_y - coor_y;
+					}
+
+					if (dx1 >= m.cellWidth || dx1 <= -m.cellWidth) {
+						dx2 = (x - coor_x > 0) ? dx1 - m.cellWidth : dx1
+								+ m.cellWidth;
+					}
+					if (dy1 >= m.cellHeight || dy1 <= -m.cellHeight) {
+						dy2 = (y - coor_y > 0) ? dy1 - m.cellHeight : dy1
+								+ m.cellHeight;
+					}
+					
+					if(dx2 == 0 && dy2== 0){
+						return false;
+					} else {
+						return move(dx2, dy2, true, 0);
+					}
+				}
+
 			}
+
 		}
 
 		return false;
@@ -243,6 +364,11 @@ public abstract class SimpleSolid extends SimpleObject {
 			x += coor_x;
 			y += coor_y;
 		}
+
+		if (x < 0 || x > m.mapWmax || y < 0 || y > m.mapHmax) {
+			return null;
+		}
+
 		return m.map[y / m.cellHeight][x / m.cellWidth];
 	}
 }

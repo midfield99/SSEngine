@@ -26,8 +26,10 @@ import java.io.File;
 
 import sprite.ImgCanvas;
 import sprite.Img;
+import sprite.ImgUpload;
 import desktopView.DesktopCanvas;
 import desktopView.DesktopImgUpload;
+import desktopView.IDesktopCanvas;
 
 /**
  * Not intended for direct use by user. This is simple a linker class
@@ -49,7 +51,7 @@ public class DesktopControl implements DeviceControl{
 	}
 
 	public boolean setCanvas(ImgCanvas canvas) {
-		if(canvas instanceof DesktopCanvas){
+		if(canvas instanceof IDesktopCanvas){
 			this.canvas = (DesktopCanvas)canvas;
 			return true;
 		}
@@ -61,9 +63,9 @@ public class DesktopControl implements DeviceControl{
 	}
 
 	@Override
-	public Img getImg(String s) {
+	public ImgUpload getImgUpload(String s) {
 		File f = new File(s);
-		return DesktopImgUpload.getInstance(f.getParentFile()).getImg(f.getName());
+		return DesktopImgUpload.getInstance(f);
 	}
 	
 	

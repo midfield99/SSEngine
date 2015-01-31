@@ -47,8 +47,11 @@ public abstract class SimpleObject {
 	SimpleObject updateNext = null;
 
 	// Optimization options for limited functionality.
-	public static final int NO_UPDATES_NO_COLLIDES = 0, NO_UPDATES = 1,
+	public static final int NO_UPDATES_NO_COLLIDES = 0,
 			NO_COLLIDES = 2, NORMAL = 3;
+	
+	//Int for generating unique IDs for objects.
+	private static int ID = 0;
 
 	// By default use the null image.
 	Img i = NullImg.getInstance();
@@ -66,6 +69,16 @@ public abstract class SimpleObject {
 	protected final int[] off = { 0, 0 };
 
 	final SimpleSolid[] collisions = new SimpleSolid[4];
+	
+	/**
+	 * Method for generating unique ID's. The ID's will be unique up to 2^32 objects.
+	 * @return a unique ID
+	 */
+	public static int generateID(){
+		ID ++;
+		return ID;
+	}
+	
 	/**
 	 * Override with behavior for collisions. SimpleObjects can only collide
 	 * with SimpleSolids, and will overlap when colliding. SimpleSolids can
@@ -139,7 +152,7 @@ public abstract class SimpleObject {
 	 * NO_COLLIDES.
 	 * 
 	 * @param optimization
-	 *            NO_UPDATES_NO_COLLIDES, NO_UPDATES, NO_COLLIDES, or NORMAL
+	 *            NO_UPDATES_NO_COLLIDES, SOLID, NO_COLLIDES, or NORMAL
 	 */
 	public SimpleObject(int optimization) {
 		this.updates = optimization;
@@ -389,7 +402,6 @@ public abstract class SimpleObject {
 			m = null;
 			drawNext.drawPrevious = drawPrevious;
 			drawPrevious.drawNext = drawNext;
-			this.updates=NO_UPDATES_NO_COLLIDES;
 			return true;
 		}
 		return false;
